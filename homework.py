@@ -1,4 +1,5 @@
 import logging
+import sys
 import os
 import requests
 import time
@@ -30,7 +31,7 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s - %(name)s'
 )
 logger = logging.getLogger(__name__)
-logger.addHandler(logging.StreamHandler())
+logger.addHandler(logging.StreamHandler(sys.stdout))
 
 
 def send_message(bot, message):
@@ -67,7 +68,7 @@ def check_response(response):
         msg_response = 'homework должен быть списком!'
         logger.error(msg_response)
         raise TypeError(msg_response)
-    if not homework:
+    if not response:
         raise TypeError('Ни чего не пришло')
     return homework
 
