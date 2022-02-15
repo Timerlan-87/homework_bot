@@ -3,10 +3,13 @@ import sys
 import os
 import requests
 import time
+import json
+
 import telegram
 
 from http import HTTPStatus
 from dotenv import load_dotenv
+from json.decoder import JSONDecodeError
 
 load_dotenv()
 
@@ -20,7 +23,8 @@ RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
-HOMEWORK_STATUSES = {
+
+VERDICTS = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
     'reviewing': 'Работа взята на проверку ревьюером.',
     'rejected': 'Работа проверена: у ревьюера есть замечания.'
@@ -47,15 +51,27 @@ def get_api_answer(current_timestamp):
     """Получение данных с API.Практикума."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code != HTTPStatus.OK:
-        msg_error = (
-            f'Endpoint {ENDPOINT} недоступен. '
-            f'Код ошибки: {response.status_code}'
-        )
-        logger.error(msg_error)
-        raise msg_error
-    return response.json()
+    try:
+        response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+        if response.status_code != HTTPStatus.OK:
+            msg_error = (
+                f'Endpoint {ENDPOINT} недоступен. '
+                f'Код ошибки: {response.status_code}'
+            )
+            logger.error(msg_error)
+            raise msg_error
+        try:
+            return response.json()
+        except JSONDecodeError as value_error:
+            msg_json = (f'В ответе пришел не JSON. '
+                        f'Ошибка: {value_error}')
+            logger.error(msg_json)
+            raise JSONDecodeError(msg_json)
+    except Exception:
+        err = (f'Сервер недоступен. '
+               f'Проверьте введенный эндпоинт {ENDPOINT} на доступность')
+        logger.error(err)
+        raise err
 
 
 def check_response(response):
@@ -77,10 +93,11 @@ def parse_status(homework):
     """Проверка статуса работы."""
     homework_name = homework.get('homework_name')
     homework_status = homework.get('status')
-    if homework_status not in HOMEWORK_STATUSES:
-        logger.error('Статус работы не документирован')
-        raise KeyError('Статус работы не документирован')
-    verdict = HOMEWORK_STATUSES[homework_status]
+    if homework_status not in VERDICTS:
+        msg_status = 'Статус работы недокументирован'
+        logger.error(msg_status)
+        raise KeyError(msg_status)
+    verdict = VERDICTS[homework_status]
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
@@ -106,6 +123,7 @@ def main():
         exit()
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
+    prev_msg = ''
 
     while True:
         try:
@@ -120,8 +138,10 @@ def main():
 
         except Exception as error:
             message = f'Сбой в работе программы: {error}'
-            send_message(bot, message)
-            time.sleep(RETRY_TIME)
+            if message != prev_msg:
+                prev_msg = message
+                send_message(bot, message)
+                time.sleep(RETRY_TIME)
         else:
             logger.info('Сообщение отправлено')
             time.sleep(RETRY_TIME)
