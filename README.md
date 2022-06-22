@@ -6,7 +6,7 @@ Telegram-бота, который будет обращаться к API сер�
 проверена ли она, а если проверена — то принял её ревьюер или вернул на доработку.
 
 ### Авторы:
-- Ruslan Timershin [https://github.com/Jon-Makkonahi](https://github.com/Timerlan-87)
+- Ruslan Timershin (https://github.com/Timerlan-87)
 
 ### Технологии:
 - Python 3
@@ -19,7 +19,7 @@ Telegram-бота, который будет обращаться к API сер�
 Клонировать репозиторий и перейти в него в командной строке:
 
 ```
-git clone git@github.com:Jon-Makkonahi/homework_bot.git
+git clone git@github.com:Timerlan-87/homework_bot.git
 ```
 
 ```
